@@ -18,7 +18,7 @@ def _conv2d(
     name=None):
 
     x = keras.layers.Conv2D(filters, kernel_size, strides, padding, kernel_initializer=kernel_initializer, name=name)(x)
-    x = keras.layers.Activation(activation=activation, name=name + '_activation')(x)
+    x = keras.layers.Activation(activation=activation, name=name.replace('conv', 'act'))(x)
 
     return x
 
@@ -26,18 +26,20 @@ def _conv2d(
 def _get_model(mode='train'):
     input_image = keras.Input(shape=(41, 41, 1))
     
-    x = _conv2d(input_image, 64, (3, 3), name='conv2d_0')
+    x = _conv2d(input_image, 64, (3, 3), name='conv1')
     
-    for i in range(1, 18):
-        x = _conv2d(x, 64, (3, 3), name='conv2d_{}'.format(i))
+    for i in range(1, 19):
+        x = _conv2d(x, 64, (3, 3), name='conv{}'.format(i + 1))
 
-    x = keras.layers.Conv2d(1, (3, 3), padding='same', kernel_initializer='he_normal')(x)
+    x = keras.layers.Conv2D(1, (3, 3), padding='same', kernel_initializer='he_normal', name='conv20')(x)
 
-    output_image = keras.layers.add([x, input_image]) if mode == 'train' else keras.layers.merge([x, input_image])
-    model = keras.models.Model(input_image, output_image)
-
-    return model
-
+    if mode == 'train':
+        output_image = keras.layers.add([x, input_image])  
+    else:
+        output_image = keras.layers.add([x, input_image])
+    
+    return keras.models.Model(input_image, output_image)
+    
 
 def train():
     model = _get_model()
@@ -69,15 +71,21 @@ def train():
 
 def test(path):
     model = _get_model(mode='test')
+    model.summary()
     model.load_weights(config.model_path)
 
-    image = keras.preprocessing.image.load_img(path, grayscale=True, target_size=(41, 41, 1))
+    image = keras.preprocessing.image.load_img(path, color_mode='grayscale', target_size=(41, 41, 1))
     
     x = keras.preprocessing.image.img_to_array(image)
     x = x.astype('float32') / 255.
     x = np.expand_dims(x, axis=0)
 
     pred = model.predict(x)
-    test_image = np.reshape(pred, (41, 41))
+    test_image = np.reshape(pred, (41, 41, 1))
 
+    cv2.imwrite('final.jpg', test_image)
     cv2.imshow("image", test_image)
+    cv2.waitKey(0)
+
+if __name__ == "__main__":
+    test('./test.jpg')  

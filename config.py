@@ -6,7 +6,7 @@ _configuration = {
     'VALID_SCALES': [4],
     'DATA_PATH': '',
     'VALID_PATH': '',
-    'MODEL_PATH': ''
+    'MODEL_PATH': './model.h5'
 }
 
 BATCH_SIZE = _configuration['BATCH_SIZE']
